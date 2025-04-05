@@ -1,5 +1,5 @@
 plugins {
-    id 'com.google.protobuf' version '0.8.5'
+    id 'com.google.protobuf' version '0.9.4'
     id 'idea'
 }
 
@@ -8,7 +8,7 @@ repositories {
     mavenLocal()
 }
 
-def grpcVersion = '1.18.0' // CURRENT_GRPC_VERSION
+def grpcVersion = '1.59.0' // CURRENT_GRPC_VERSION
 
 dependencies {
     implementation "io.grpc:grpc-netty-shaded:${grpcVersion}"
@@ -36,7 +36,7 @@ idea {
 }
 
 protobuf {
-    protoc { artifact = 'com.google.protobuf:protoc:3.7.0' }
+    protoc { artifact = 'com.google.protobuf:protoc:3.24.4' }
     plugins {
         grpc { artifact = "io.grpc:protoc-gen-grpc-java:${grpcVersion}" }
     }
