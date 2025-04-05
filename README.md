@@ -31,13 +31,13 @@ To interact with cluster you can use cURL:
 
 ```
 #Set test=hello
-docker run --rm --net=raft-kt_default hortonworks/alpine-curl:3.1 curl --request POST --url node_one:8000/test --data 'hello' ; echo
+docker run --rm --net=raft-kotlin_default hortonworks/alpine-curl:3.1 curl --request POST -L --url node_one:8000/test --data 'hello' ; echo
 ```
 
 
 ```
 #Read test value
-docker run --rm --net=raft-kt_default hortonworks/alpine-curl:3.1 curl --request GET --url node_one:8000/test ; echo
+docker run --rm --net=raft-kotlin_default hortonworks/alpine-curl:3.1 curl --request GET -L --url node_one:8000/test ; echo
 ```
 
 #### Other

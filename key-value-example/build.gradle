@@ -17,7 +17,7 @@ dependencies {
 }
 
 jar {
-    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
     manifest {
         attributes 'Main-Class': 'edu.ucu.example.KeyValue'
     }
@@ -26,4 +26,10 @@ jar {
             it.isDirectory() ? it : zipTree(it)
         }
     }
+    from {
+        configurations.runtimeClasspath.findAll { it.name.endsWith("jar") }.collect { zipTree(it) }
+    } {
+        include "META-INF/services/**"
+    }
+
 }
