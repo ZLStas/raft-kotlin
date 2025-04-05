@@ -1,0 +1,50 @@
+
+apk add iproute2
+ tc qdisc add dev eth0 root netem delay 200ms
+To reset to normal : tc qdisc del dev eth0 root netem
+
+run the test
+📦 Starting Raft performance test against node_two
+⏱️  POST perf-key-1 took 1864ms
+⏱️  POST perf-key-2 took 1600ms
+⏱️  POST perf-key-3 took 2921ms
+⏱️  POST perf-key-4 took 1382ms
+⏱️  POST perf-key-5 took 1236ms
+⏱️  POST perf-key-6 took 1215ms
+⏱️  POST perf-key-7 took 1001ms
+⏱️  POST perf-key-8 took 993ms
+⏱️  POST perf-key-9 took 1038ms
+⏱️  POST perf-key-10 took 1269ms
+⏱️  POST perf-key-11 took 1463ms
+⏱️  POST perf-key-12 took 1075ms
+⏱️  POST perf-key-13 took 1451ms
+⏱️  POST perf-key-14 took 2284ms
+⏱️  POST perf-key-15 took 1415ms
+⏱️  POST perf-key-16 took 4373ms
+⏱️  POST perf-key-17 took 1968ms
+⏱️  POST perf-key-18 took 1181ms
+⏱️  POST perf-key-19 took 983ms
+⏱️  POST perf-key-20 took 1043ms
+✅ Writes complete.
+
+🧪 Checking final values via node_one (assumed leader)
+perf-key-1 → value-1
+perf-key-2 →
+perf-key-3 →
+perf-key-4 → value-4
+perf-key-5 → value-5
+perf-key-6 → value-6
+perf-key-7 → value-7
+perf-key-8 → value-8
+perf-key-9 → value-9
+perf-key-10 → value-10
+perf-key-11 → value-11
+perf-key-12 → value-12
+perf-key-13 → value-13
+perf-key-14 → value-14
+perf-key-15 → value-15
+perf-key-16 → value-16
+perf-key-17 → value-17
+perf-key-18 → value-18
+perf-key-19 → value-19
+perf-key-20 → value-20
