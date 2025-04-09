@@ -8,8 +8,8 @@ package helloworld;
 service ClusterNode {
     rpc RequestVote (VoteRequest) returns (VoteResponse) {}
     rpc AppendEntries (AppendRequest) returns (AppendResponse){}
+    rpc AppendNetworkHeartbeat (NetworkHeartbeatRequest) returns (NetworkHeartbeatResponse){}
 }
-
 
 message VoteRequest {
     int64 term = 1;
@@ -31,7 +31,7 @@ message AppendRequest{
     int64 prevLogTerm = 4;
     int32 leaderCommit = 5;
     repeated LogEntry entries = 6;
-
+    int64 timeSent = 7;
 
 }
 
@@ -44,5 +44,22 @@ message LogEntry {
 message AppendResponse{
     int64 term = 1;
     bool success = 2;
+}
 
+message NetworkHeartbeatRequest{
+    int64 timeSent = 1;
+    oneof maxLmOption {
+        int64 maxLm = 2;
+    }
+    oneof latencyFromLeaderOption {
+        int64 latencyFromLeader = 3;
+    }
+    string from = 4;
+}
+
+message NetworkHeartbeatResponse {
+    int64 timeSent = 1;
+    int64 timeReceived = 2;
+    bool success = 3;
+    string from = 4;
 }

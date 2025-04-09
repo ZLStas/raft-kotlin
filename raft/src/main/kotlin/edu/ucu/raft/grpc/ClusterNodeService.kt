@@ -4,7 +4,6 @@ import edu.ucu.proto.*
 import edu.ucu.raft.adapters.RaftHandler
 import io.grpc.stub.StreamObserver
 import kotlinx.coroutines.runBlocking
-import mu.KotlinLogging
 
 
 class ClusterNodeService(val raft: RaftHandler) : ClusterNodeGrpc.ClusterNodeImplBase() {
@@ -15,7 +14,6 @@ class ClusterNodeService(val raft: RaftHandler) : ClusterNodeGrpc.ClusterNodeImp
         responseObserver.onCompleted()
     }
 
-
     override fun appendEntries(request: AppendRequest, responseObserver: StreamObserver<AppendResponse>) {
         val result = runBlocking {
             raft.appendEntries(request)
@@ -23,4 +21,13 @@ class ClusterNodeService(val raft: RaftHandler) : ClusterNodeGrpc.ClusterNodeImp
         responseObserver.onNext(result)
         responseObserver.onCompleted()
     }
+
+    override fun appendNetworkHeartbeat(request: NetworkHeartbeatRequest, responseObserver: StreamObserver<NetworkHeartbeatResponse>) {
+        val result = runBlocking {
+            raft.appendNetworkHeartbeat(request)
+        }
+        responseObserver.onNext(result)
+        responseObserver.onCompleted()
+    }
+
 }

@@ -2,6 +2,8 @@ package edu.ucu.raft
 
 import edu.ucu.proto.AppendRequest
 import edu.ucu.proto.AppendResponse
+import edu.ucu.proto.NetworkHeartbeatRequest
+import edu.ucu.proto.NetworkHeartbeatResponse
 import edu.ucu.proto.VoteRequest
 import edu.ucu.proto.VoteResponse
 import edu.ucu.raft.adapters.ClusterNode
@@ -23,6 +25,7 @@ class TestRaftNode(val state: State) : ClusterNode {
 
     override suspend fun requestVote(request: VoteRequest): VoteResponse = state.requestVote(request)
     override suspend fun appendEntries(request: AppendRequest): AppendResponse = state.appendEntries(request)
+    override suspend fun appendNetworkHeartbeat(request: NetworkHeartbeatRequest): NetworkHeartbeatResponse = state.appendNetworkHeartbeat(request)
 
 }
 
@@ -55,6 +58,9 @@ class LocalRaftNode(val controller: RaftController) : ClusterNode {
 
     override suspend fun appendEntries(request: AppendRequest): AppendResponse? =
             if (isolated) null else controller.appendEntries(request)
+
+    override suspend fun appendNetworkHeartbeat(request: NetworkHeartbeatRequest): NetworkHeartbeatResponse? =
+        if (isolated) null else controller.appendNetworkHeartbeat(request)
 
     override fun toString(): String {
         return "LocalRaftNode(controller=$controller, nextIndex=$nextIndex, matchIndex=$matchIndex, nodeId='$nodeId')"

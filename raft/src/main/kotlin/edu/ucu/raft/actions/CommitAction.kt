@@ -30,7 +30,6 @@ class CommitAction(val state: State, val cluster: List<ClusterNode>) {
     private fun matchIndexMatches(newCommit: Int): Boolean {
         val majority = Math.floorDiv(cluster.size, 2)
         return cluster.filter { it.matchIndex >= newCommit }.count() > majority
-
     }
 
 }

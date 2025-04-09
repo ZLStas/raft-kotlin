@@ -3,22 +3,22 @@ package edu.ucu.raft
 import edu.ucu.raft.log.Command
 import edu.ucu.proto.AppendRequest
 import edu.ucu.proto.AppendResponse
+import edu.ucu.proto.NetworkHeartbeatRequest
+import edu.ucu.proto.NetworkHeartbeatResponse
 import edu.ucu.proto.VoteRequest
 import edu.ucu.proto.VoteResponse
 import edu.ucu.raft.actions.CommitAction
 import edu.ucu.raft.actions.HeartbeatAction
+import edu.ucu.raft.actions.NetworkHeartbeatAction
 import edu.ucu.raft.actions.VotingAction
 import edu.ucu.raft.adapters.ClusterNode
 import edu.ucu.raft.adapters.RaftHandler
 import edu.ucu.raft.clock.TermClock
 import edu.ucu.raft.state.*
 import kotlinx.coroutines.*
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import mu.KotlinLogging
 import java.util.*
 import kotlin.concurrent.fixedRateTimer
-import kotlin.math.log
 
 
 class RaftController(val config: RaftConfiguration,
@@ -29,6 +29,7 @@ class RaftController(val config: RaftConfiguration,
     private val clock = TermClock(config.timerInterval)
     private val logger = KotlinLogging.logger {}
     private val heartbeat = HeartbeatAction(state, cluster)
+    private val networkHeartbeat = NetworkHeartbeatAction(state, cluster, clock)
     private val voting = VotingAction(state, cluster)
     private val commit = CommitAction(state, cluster)
     private val clockSubscription = clock.channel.openSubscription()
@@ -78,6 +79,20 @@ class RaftController(val config: RaftConfiguration,
         }
     }
 
+    private fun prepareNetworkHeartbeatTimer() {
+        heartbeatTimer = fixedRateTimer("heartbeatNetwork", initialDelay = config.networkHeartbeatInterval, period = config.networkHeartbeatInterval) {
+            runBlocking {
+                kotlin.runCatching {
+                    //                    stateLock.withLock {
+                    networkHeartbeat.send()
+//                    }
+                }.onFailure {
+                    logger.error { "Failure: $it" }
+                }
+            }
+        }
+    }
+
     private fun prepareTermIncrementSubscriber() {
         termSubscriber = GlobalScope.launch {
             for (term in clockSubscription) {
@@ -105,6 +120,7 @@ class RaftController(val config: RaftConfiguration,
             clock.start()
             prepareTermIncrementSubscriber()
             prepareHeartbeatTimer()
+            prepareNetworkHeartbeatTimer()
             prepareStateSubscriber()
         }
     }
@@ -141,6 +157,9 @@ class RaftController(val config: RaftConfiguration,
         return result
     }
 
+    override suspend fun appendNetworkHeartbeat(request: NetworkHeartbeatRequest): NetworkHeartbeatResponse {
+        return state.appendNetworkHeartbeat(request)
+    }
 
     suspend fun applyCommand(command: Command): Boolean {
         val index = state.applyCommand(command)

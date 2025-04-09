@@ -1,0 +1,69 @@
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{amsfonts}
+
+\DeclareMathOperator*{\argmax}{arg\,max}  % Define argmax with limits for use in display math
+
+\begin{document}
+
+    \begin{algorithm}
+        \caption{Follower Heartbeat and Timeout Adjustment Process}
+        \begin{algorithmic}[1]
+            \State \( N \gets \text{provided by administrator} \) \Comment{Number of nodes within the cluster}
+            \State \( T_{\mathrm{dlbc}}, T_{\mathrm{bccc}}, T_{\mathrm{dlcc}} \gets \text{null, null, null} \) \Comment{Delays between respective nodes}
+            \State \( T_{\text{max}}, a, b, \delta_{\text{max}} \gets \text{administrator provided values} \) \Comment{Leader election timeout configuration values}
+            \State \( \text{Nodes} \gets \{x \in \mathbb{Z} \mid 1 \leq x \leq N -1\} \) \Comment{Other nodes within the cluster}
+            \State \( L_{\text{latencies-from-node}} \gets \{(node, \tau) \mid node \in \text{Nodes}, \tau \gets \text{null}\} \) \Comment{Node and delay-from-node pairs set}
+            \State \( L_{\text{latencies-to-node}} \gets \{(node, \tau) \mid node \in \text{Nodes}, \tau \gets \text{null}\} \) \Comment{Node and delay-to-node pairs set}
+            \State \( L_{\text{leader-to-node}} \gets \{(node, \tau) \mid node \in \text{Nodes}, \tau \gets \text{null}\} \) \Comment{Node and leader-to-node-delay pairs set}
+            \State \( maxL_M \gets \text{null} \) \Comment{The slowest link delay within the nodes' most efficient majority}
+            \State \( \Theta \gets \{(node, maxL_M) \mid node \in \text{Nodes}, maxL_M \gets \text{null}\} \) \Comment{Node and slowest-link-delay-within-majority pairs set}
+            \State \( T \gets \Call{Random}{T_{\max}} \) \Comment{Leader election timeout}
+
+            \Procedure{ReceiveLeadersHeartbeat}{$message$}
+                \State \( T_{\mathrm{dlcc}} \gets \Call{GetCurrentTime}{} - message.currentTime \)
+            \EndProcedure
+
+            \Procedure{SendFollowerHeartbeat}{$node$}
+                \State \( currentTime \gets \Call{GetCurrentTime}{} \)
+                \State \( latencyFromLeader \gets T_{\mathrm{dlcc}} \)
+                \ForAll{\( otherNode \in \text{Nodes} \)}
+                    \State \Call{SendMessage}{otherNode, $\{currentTime, maxL_M, latencyFromLeader\}$}
+                \EndFor
+            \EndProcedure
+
+            \Procedure{ProcessFollowerHeartbeatResponse}{$node$, $message$}
+                \State \( L_{\text{latencies-to-node}}[node] \gets message.delayFromSender \)
+            \EndProcedure
+
+            \Procedure{ReceiveFollowerHeartbeat}{$node$, $message$}
+                \State \( receivedAt \gets \Call{GetCurrentTime}{} \)
+                \State \( delayFromSender \gets receivedAt - message.currentTime \)
+                \State \( L_{\text{latencies-from-node}}[node] \gets delayFromSender \)
+                \State \( L_{\text{latencies-from-leader}}[node] \gets message.latencyFromLeader \)
+                \State \( \Theta[node] \gets message.maxL_M \)
+
+                \State \Call{CalculateTimeout}{} \)
+                \State \Call{SendMessage}{node, $\{delayFromSender\}$}
+            \EndProcedure
+
+            \Function{CalculateTimeout}{}
+                \State \( maxL_M \gets \max \left\{\tau \mid (node, \tau) \in \text{sort}\left(L_{\text{latencies-to-node}}\right)\left[:\left\lceil \frac{|L_{\text{latencies-to-node}}|}{2} \right\rceil\right]\right\} \)
+                \State \( (node, maxL_M) \gets \argmax_{(node, maxL_M) \in \Theta} maxL_M \)
+                \State \( max\Theta_M \gets (node, maxL_M).maxL_M \)
+                \If{\( max\Theta_M = maxL_M \)}
+                    \State \( T \gets \left(\frac{maxL_M + \Call{rand}{a, b}}{max\Theta_M}\right) \times T_{\text{max}} \)
+                \Else
+                    \State \( bestCandidate \gets (node, maxL_M).\text{node} \)
+                    \State T_{\text{dlbc}} \gets  L_{\text{leader-to-node}}[bestCandidate]$
+                    \State T_{\text{bccc}} \gets  L_{\text{leader-from-node}}[bestCandidate]$
+                    \State \( T \gets \left(\frac{maxL_M + \Call{rand}{a, b}}{max\Theta_M}\right) \times T_{\text{max}} + \min(T_{\text{dlbc}} + T_{\text{bccc}} - T_{\text{dlcc}}, \delta_{\max}) \)
+                \EndIf
+            \EndFunction
+
+        \end{algorithmic}
+    \end{algorithm}
+
+\end{document}

@@ -36,6 +36,12 @@ class GrpcClusterNode(val host: String, val port: Int) : ClusterNode {
         }
     }
 
+    override suspend fun appendNetworkHeartbeat(request: NetworkHeartbeatRequest): NetworkHeartbeatResponse? {
+        return suspendCoroutine {
+            it.resume(kotlin.runCatching { stub.appendNetworkHeartbeat(request) }.getOrNull())
+        }
+    }
+
     override fun reinitializeIndex(index: Int) {
         logger.info { "Index for node $host:$port reinitialized" }
         super.reinitializeIndex(index)

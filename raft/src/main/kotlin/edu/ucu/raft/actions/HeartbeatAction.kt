@@ -24,10 +24,11 @@ class HeartbeatAction(val state: State, val cluster: List<ClusterNode>) {
 
                 val entries = log.starting(prevIndex + 1)
                 val request = AppendRequest.newBuilder()
-                        .setTerm(state.term).setLeaderId(state.id).setLeaderCommit(state.log.commitIndex)
-                        .setPrevLogIndex(prevIndex).setPrevLogTerm(prevTerm)
-                        .addAllEntries(entries)
-                        .build()
+                    .setTerm(state.term).setLeaderId(state.id).setLeaderCommit(state.log.commitIndex)
+                    .setPrevLogIndex(prevIndex).setPrevLogTerm(prevTerm)
+                    .addAllEntries(entries)
+                    .setTimeSent(System.currentTimeMillis())
+                    .build()
 
 
                 GlobalScope.async {

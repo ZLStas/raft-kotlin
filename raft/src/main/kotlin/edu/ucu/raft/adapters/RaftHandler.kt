@@ -2,6 +2,8 @@ package edu.ucu.raft.adapters
 
 import edu.ucu.proto.AppendRequest
 import edu.ucu.proto.AppendResponse
+import edu.ucu.proto.NetworkHeartbeatRequest
+import edu.ucu.proto.NetworkHeartbeatResponse
 import edu.ucu.proto.VoteRequest
 import edu.ucu.proto.VoteResponse
 
@@ -9,4 +11,7 @@ interface RaftHandler {
     suspend fun requestVote(request: VoteRequest): VoteResponse?
 
     suspend fun appendEntries(request: AppendRequest): AppendResponse?
+
+    suspend fun appendNetworkHeartbeat(request: NetworkHeartbeatRequest): NetworkHeartbeatResponse?
+
 }

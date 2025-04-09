@@ -1,13 +1,12 @@
 package edu.ucu.raft.clock
 
+import edu.ucu.raft.state.State
 import kotlinx.coroutines.*
-import kotlinx.coroutines.channels.BroadcastChannel
 import kotlinx.coroutines.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import mu.KotlinLogging
 import java.util.*
-import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.fixedRateTimer
 
 class TermClock(private val interval: Long) {
@@ -43,6 +42,12 @@ class TermClock(private val interval: Long) {
         }
     }
 
+    private fun scheduleNew(interval: Long) {
+        timer = fixedRateTimer(initialDelay = interval, period = interval) {
+            runBlocking { updateTerm(term + 1) }
+        }
+    }
+
     suspend fun update(newTerm: Long) {
         mutex.withLock{
             this.term = newTerm
@@ -66,4 +71,14 @@ class TermClock(private val interval: Long) {
             }
         }
     }
+
+    suspend fun updateIntervalBasedOnDelays(interval: Long) {
+        mutex.withLock {
+            if (!stopped) {
+                timer.cancel()
+                scheduleNew(interval)
+            }
+        }
+    }
+
 }

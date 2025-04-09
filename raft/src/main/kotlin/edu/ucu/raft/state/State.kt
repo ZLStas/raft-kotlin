@@ -9,13 +9,20 @@ import mu.KotlinLogging
 class State(val id: Int,
             val log: Log = Log(),
             startState: NodeState = NodeState.FOLLOWER,
-            term: Long = 0) {
+            term: Long = 0
+    ) {
 
     private val logger = KotlinLogging.logger {}
     val updates = ConflatedBroadcastChannel<Pair<NodeState, NodeState>>()
 
     var term: Long = term
         internal set
+
+    var delays: MutableMap<String, Long?> = mutableMapOf()
+    var leaderToNodeDelays: MutableMap<String, Long?> = mutableMapOf()
+    var Tdlcc: Long? = null
+    var thetaM: MutableMap<String, Long?> = mutableMapOf()
+    var maxLm: Long? = null
 
     @Volatile
     var current: NodeState = startState
@@ -125,8 +132,21 @@ class State(val id: Int,
 
         this.leaderId = request.leaderId
         log.commit(request.leaderCommit)
+        Tdlcc = System.currentTimeMillis() - request.timeSent
+        leaderToNodeDelays[id.toString()] = Tdlcc
         return AppendResponse.newBuilder().setTerm(term).setSuccess(true).build()
+    }
 
+    suspend fun appendNetworkHeartbeat(request: NetworkHeartbeatRequest): NetworkHeartbeatResponse {
+        leaderToNodeDelays[request.from] = request.latencyFromLeader
+        thetaM[request.from] = request.maxLm
+
+        return NetworkHeartbeatResponse.newBuilder()
+            .setTimeSent(request.timeSent)
+            .setTimeReceived(System.currentTimeMillis())
+            .setFrom(id.toString())
+            .setSuccess(true)
+            .build()
     }
 
     override fun toString(): String {
