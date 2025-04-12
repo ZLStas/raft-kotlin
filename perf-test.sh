@@ -3,7 +3,7 @@
 NETWORK="raft-kotlin_default"
 TARGET_NODE="node_two"
 KEY_PREFIX="perf-key"
-NUM_WRITES=1000
+NUM_WRITES=100
 
 timestamp=$(date +"%Y%m%d_%H%M%S")
 OUT_FILE="raft_benchmark_${timestamp}.log"
