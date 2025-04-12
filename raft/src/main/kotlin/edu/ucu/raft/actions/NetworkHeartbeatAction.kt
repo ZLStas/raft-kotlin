@@ -55,15 +55,15 @@ class NetworkHeartbeatAction(val state: State, val cluster: List<ClusterNode>, v
                                 val Tdlbc = state.leaderToNodeDelays[bestCandidateId]
                                 val maxTheta_M = state.thetaM.values.filterNotNull().maxOrNull() ?: 0L
 
-                                val a = 50L
-                                val b = 100L
-                                val T_max = 1200L
-                                val delta_me = 0.2
-                                val delta_c = 300
+                                val a = 10L
+                                val b = 20L
+                                val T_max = 1500L
+                                val delta_me = 0.53
+                                val delta_c = 200
 
                                 val newInterval: Long = if (bestCandidateId == state.id.toString()) {
                                     val base = maxOf(
-                                        (state.maxLm!!.toDouble() / maxTheta_M.toDouble()) * T_max,
+                                        (maxTheta_M.toDouble() / state.maxLm!!.toDouble()) * (T_max * delta_me),
                                         T_max * delta_me
                                     )
                                     (base + (a..b).random()).toLong()
