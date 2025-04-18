@@ -55,15 +55,15 @@ class NetworkHeartbeatAction(val state: State, val cluster: List<ClusterNode>, v
                                 val Tdlbc = state.leaderToNodeDelays[bestCandidateId]
                                 val maxTheta_M = state.thetaM.values.filterNotNull().maxOrNull() ?: 0L
 
-                                val a = 10L
-                                val b = 20L
-                                val T_max = 1500L
-                                val delta_me = 0.53
-                                val delta_c = 200
+                                val a = 100L
+                                val b = 200L
+                                val T_max = 1600L
+                                val delta_me = 0.6
+                                val delta_c = 150
 
                                 val newInterval: Long = if (bestCandidateId == state.id.toString()) {
                                     val base = maxOf(
-                                        (maxTheta_M.toDouble() / state.maxLm!!.toDouble()) * (T_max * delta_me),
+                                        (state.maxLm!!.toDouble() / maxTheta_M.toDouble()) * T_max,
                                         T_max * delta_me
                                     )
                                     (base + (a..b).random()).toLong()
@@ -79,7 +79,7 @@ class NetworkHeartbeatAction(val state: State, val cluster: List<ClusterNode>, v
                                     (base + (a..b).random() + minExtra).toLong()
                                 }
 
-                                logger.info { "New interval: $newInterval" }
+                                logger.info { "New interval: $newInterval, \n node: ${state.id},\n is best candidate: ${bestCandidateId == state.id.toString()}, \n maxLm: ${state.maxLm!!.toDouble()}, \n  maxTheta_M: ${maxTheta_M.toDouble()}, \n maxLm/maxTheta_M: ${(state.maxLm!!.toDouble() / maxTheta_M.toDouble())}, \n (maxLm/maxTheta_M) *T_max  ${(state.maxLm!!.toDouble() / maxTheta_M.toDouble()) * T_max}" }
 
                                 termClock.updateIntervalBasedOnDelays(newInterval)
                             }
