@@ -55,32 +55,53 @@ class NetworkHeartbeatAction(val state: State, val cluster: List<ClusterNode>, v
                                 val Tdlbc = state.leaderToNodeDelays[bestCandidateId]
                                 val maxTheta_M = state.thetaM.values.filterNotNull().maxOrNull() ?: 0L
 
-                                val a = 100L
-                                val b = 200L
+                                val a = 10L
+                                val b = 30L
                                 val T_max = 1600L
-                                val delta_me = 0.6
+                                val delta_me = 0.63
                                 val delta_c = 150
-
-                                val newInterval: Long = if (bestCandidateId == state.id.toString()) {
-                                    val base = maxOf(
-                                        (state.maxLm!!.toDouble() / maxTheta_M.toDouble()) * T_max,
-                                        T_max * delta_me
-                                    )
-                                    (base + (a..b).random()).toLong()
+                                var newInterval : Long
+                                if (state.Tdlcc != null && maxTheta_M != state.maxLm && 4 * state.maxLm!!  < T_max * delta_me) {
+                                     newInterval  =  (T_max * delta_me).toLong()
                                 } else {
-                                    val base = maxOf(
-                                        (state.maxLm!!.toDouble() / maxTheta_M.toDouble()) * T_max,
-                                        T_max * (1 - delta_me)
-                                    )
-                                    val minExtra = minOf(
-                                        (Tdlbc!! + T_bccc - state.Tdlcc!!).toDouble(),
-                                        delta_c.toDouble()
-                                    )
-                                    (base + (a..b).random() + minExtra).toLong()
+                                    newInterval = if (bestCandidateId == state.id.toString()) {
+                                        val base = maxOf(
+                                            (state.maxLm!!.toDouble() / maxTheta_M.toDouble()) * T_max,
+                                            T_max * delta_me
+                                        )
+                                        (base + (a..b).random()).toLong()
+                                    } else {
+                                        val base = maxOf(
+                                            (state.maxLm!!.toDouble() / maxTheta_M.toDouble()) * T_max,
+                                            T_max * (1 - delta_me)
+                                        )
+                                        val minExtra = minOf(
+                                            (Tdlbc!! + T_bccc - state.Tdlcc!!).toDouble(),
+                                            delta_c.toDouble()
+                                        )
+                                        (base + (a..b).random() + minExtra).toLong()
+                                    }
                                 }
 
-                                logger.info { "New interval: $newInterval, \n node: ${state.id},\n is best candidate: ${bestCandidateId == state.id.toString()}, \n maxLm: ${state.maxLm!!.toDouble()}, \n  maxTheta_M: ${maxTheta_M.toDouble()}, \n maxLm/maxTheta_M: ${(state.maxLm!!.toDouble() / maxTheta_M.toDouble())}, \n (maxLm/maxTheta_M) *T_max  ${(state.maxLm!!.toDouble() / maxTheta_M.toDouble()) * T_max}" }
+                                logger.info {
+                                    """
+                                        📡 New interval: $newInterval
+                                        🧠 Node ID: ${state.id}
+                                        ✅ Is best candidate: ${bestCandidateId == state.id.toString()}
 
+                                        📊 maxLm: ${state.maxLm!!.toDouble()}
+                                        📊 maxTheta_M: ${maxTheta_M.toDouble()}
+                                        📊 maxLm / maxTheta_M: ${state.maxLm!!.toDouble() / maxTheta_M.toDouble()}
+                                        📊 (maxLm / maxTheta_M) * T_max: ${(state.maxLm!!.toDouble() / maxTheta_M.toDouble()) * T_max}
+
+                                        🛠 T_max * delta_me: ${T_max * delta_me}
+                                        ⏱ Tdlcc: ${state.Tdlcc}
+                                        ⛳️ leaderToNodeDelays: ${state.leaderToNodeDelays}
+                                        📈 thetaM.values: ${state.thetaM.values}
+
+                                        🧪 4 * maxLm < T_max * delta_me: ${4 * state.maxLm!!} < ${T_max * delta_me} → ${4 * state.maxLm!! < T_max * delta_me}
+                                        """.trimIndent()
+                                }
                                 termClock.updateIntervalBasedOnDelays(newInterval)
                             }
                         }

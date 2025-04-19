@@ -3,7 +3,7 @@ import re
 from datetime import datetime
 
 # File paths
-adaptive_log_path = "modified_raft_benchmark.log"
+adaptive_log_path = "modified_raft_benchmark-2.log"
 basic_log_path = "palin_raft_benchmark.log"
 
 # Jitter value (ms)

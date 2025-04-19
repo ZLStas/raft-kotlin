@@ -35,7 +35,7 @@ class HeartbeatAction(val state: State, val cluster: List<ClusterNode>) {
                     val response = it.appendEntries(request)
                     if (response == null) null else it to response
                 }
-            }.map { withTimeoutOrNull(200) { it.await() } }
+            }.map { withTimeoutOrNull(300) { it.await() } }
                     .filterNotNull()
                     .forEach { (node, response) ->
                         when {
