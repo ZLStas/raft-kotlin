@@ -80,14 +80,16 @@ class RaftController(val config: RaftConfiguration,
     }
 
     private fun prepareNetworkHeartbeatTimer() {
-        heartbeatTimer = fixedRateTimer("heartbeatNetwork", initialDelay = config.networkHeartbeatInterval, period = config.networkHeartbeatInterval) {
-            runBlocking {
+        heartbeatTimer = fixedRateTimer(
+            "heartbeatNetwork",
+            initialDelay = config.networkHeartbeatInterval,
+            period = config.networkHeartbeatInterval
+        ) {
+            CoroutineScope(Dispatchers.IO).launch {
                 kotlin.runCatching {
-                    //                    stateLock.withLock {
                     networkHeartbeat.send()
-//                    }
                 }.onFailure {
-                    logger.error { "Failure: $it" }
+                    logger.error { "Failure in network heartbeat: $it" }
                 }
             }
         }

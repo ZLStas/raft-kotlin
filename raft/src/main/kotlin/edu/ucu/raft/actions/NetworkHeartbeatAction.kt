@@ -5,6 +5,11 @@ import edu.ucu.raft.adapters.ClusterNode
 import edu.ucu.raft.clock.TermClock
 import edu.ucu.raft.state.NodeState
 import edu.ucu.raft.state.State
+import java.nio.file.Files
+import java.nio.file.Paths
+import java.time.ZoneId
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.async
 import mu.KotlinLogging
@@ -15,7 +20,10 @@ class NetworkHeartbeatAction(val state: State, val cluster: List<ClusterNode>, v
 
     private val log = state.log
 
+    private var interval  = 0L
+
     suspend fun send() {
+        logger.info { "Sending network heartbeat by  ${state.id}" }
         if (state.current != NodeState.LEADER) {
             cluster.map {
 
@@ -45,65 +53,6 @@ class NetworkHeartbeatAction(val state: State, val cluster: List<ClusterNode>, v
                             state.delays[response.from] = response.timeReceived - response.timeSent
                             state.maxLm = culculateMaxLm()
                             state.thetaM[state.id.toString()] = state.maxLm
-
-                            if (state.delays.size == cluster.size
-                                && state.leaderToNodeDelays.size == cluster.size
-                                && state.thetaM.size == cluster.size
-                            ) {
-                                val bestCandidateId = state.thetaM.minByOrNull { it.value ?: 0L }?.key
-                                val T_bccc = state.delays[bestCandidateId] ?: 0L
-                                val Tdlbc = state.leaderToNodeDelays[bestCandidateId]
-                                val maxTheta_M = state.thetaM.values.filterNotNull().maxOrNull() ?: 0L
-
-                                val a = 10L
-                                val b = 30L
-                                val T_max = 1600L
-                                val delta_me = 0.63
-                                val delta_c = 150
-                                var newInterval : Long
-                                if (state.Tdlcc != null && maxTheta_M != state.maxLm && 4 * state.maxLm!!  < T_max * delta_me) {
-                                     newInterval  =  (T_max * delta_me).toLong()
-                                } else {
-                                    newInterval = if (bestCandidateId == state.id.toString()) {
-                                        val base = maxOf(
-                                            (state.maxLm!!.toDouble() / maxTheta_M.toDouble()) * T_max,
-                                            T_max * delta_me
-                                        )
-                                        (base + (a..b).random()).toLong()
-                                    } else {
-                                        val base = maxOf(
-                                            (state.maxLm!!.toDouble() / maxTheta_M.toDouble()) * T_max,
-                                            T_max * (1 - delta_me)
-                                        )
-                                        val minExtra = minOf(
-                                            (Tdlbc!! + T_bccc - state.Tdlcc!!).toDouble(),
-                                            delta_c.toDouble()
-                                        )
-                                        (base + (a..b).random() + minExtra).toLong()
-                                    }
-                                }
-
-                                logger.info {
-                                    """
-                                        📡 New interval: $newInterval
-                                        🧠 Node ID: ${state.id}
-                                        ✅ Is best candidate: ${bestCandidateId == state.id.toString()}
-
-                                        📊 maxLm: ${state.maxLm!!.toDouble()}
-                                        📊 maxTheta_M: ${maxTheta_M.toDouble()}
-                                        📊 maxLm / maxTheta_M: ${state.maxLm!!.toDouble() / maxTheta_M.toDouble()}
-                                        📊 (maxLm / maxTheta_M) * T_max: ${(state.maxLm!!.toDouble() / maxTheta_M.toDouble()) * T_max}
-
-                                        🛠 T_max * delta_me: ${T_max * delta_me}
-                                        ⏱ Tdlcc: ${state.Tdlcc}
-                                        ⛳️ leaderToNodeDelays: ${state.leaderToNodeDelays}
-                                        📈 thetaM.values: ${state.thetaM.values}
-
-                                        🧪 4 * maxLm < T_max * delta_me: ${4 * state.maxLm!!} < ${T_max * delta_me} → ${4 * state.maxLm!! < T_max * delta_me}
-                                        """.trimIndent()
-                                }
-                                termClock.updateIntervalBasedOnDelays(newInterval)
-                            }
                         }
 
                         !response.success -> {
@@ -112,7 +61,66 @@ class NetworkHeartbeatAction(val state: State, val cluster: List<ClusterNode>, v
                     }
                 }
 
+            logger.info { "!! State check -> current: ${state.current}, isLeader: ${state.current == NodeState.LEADER}" }
+            if (state.delays.size == cluster.size
+                && state.leaderToNodeDelays.size == cluster.size
+                && state.thetaM.size == cluster.size
+            ) {
+                val bestCandidateId = state.thetaM.minByOrNull { it.value ?: 0L }?.key
+                val T_bccc = state.delays[bestCandidateId] ?: 0L
+                val Tdlbc = state.leaderToNodeDelays[bestCandidateId]
+                val maxTheta_M = state.thetaM.values.filterNotNull().maxOrNull() ?: 0L
+
+                val a = 20L
+                val b = 40L
+                val T_max = 1700L
+                val delta_me = 0.45
+                val delta_c = 300
+
+                val avgDelay = state.maxLm ?: 0L
+
+                // Задаємо допустимий інтервал затримок, в якому очікується робота кластера
+                val minDelay = 20L
+                val maxDelay = 700L
+
+                val clamped = avgDelay.coerceIn(minDelay.toLong(), maxDelay).toDouble()
+                val delayFactor = (clamped - minDelay) / (maxDelay - minDelay)  // ∈ [0.0, 1.0]
+
+                val candidateScale = 1 + delta_me * delayFactor       // ∈ [1, 1.4]
+                val otherScale = 1 + (1-delta_me) * delayFactor           // ∈ [1, 1.6]
+
+                val adaptiveBase = 700 + avgDelay.toDouble().coerceIn(minDelay.toDouble(), maxDelay.toDouble())
+
+                var newInterval = if (bestCandidateId == state.id.toString()) {
+                    val base = adaptiveBase * candidateScale
+                    (base + (a..b).random()).toLong()
+                } else {
+                    val base = adaptiveBase * otherScale
+                    val minExtra = minOf(
+                        (Tdlbc!! + T_bccc - state.Tdlcc!!).toDouble(),
+                        delta_c.toDouble()
+                    )
+                    (base + (a..b).random() + minExtra).toLong()
+                }
+                interval = newInterval
+                termClock.updateIntervalBasedOnDelays(newInterval)
+            }
         }
+
+        logIntervalDataIntoFile(interval)
+    }
+
+    private fun logIntervalDataIntoFile(newInterval: Long) {
+        val logDir = Paths.get("/logs")
+        Files.createDirectories(logDir)
+        val nodeLogFile = logDir.resolve("node_${state.id}.log").toFile()
+        val now = ZonedDateTime.now(ZoneId.systemDefault())
+            .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss z"))
+
+        val logEntry = "[$now] Interval update for Node: ${state.id} → $newInterval"
+
+        println("📝 Writing log to $nodeLogFile")
+        nodeLogFile.appendText(logEntry + "\n")
     }
 
     private fun culculateMaxLm(): Long {

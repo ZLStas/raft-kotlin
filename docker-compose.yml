@@ -8,7 +8,7 @@ services:
       ID: "50"
       PORT: "4000"
       NODES: "51:172.20.0.6:4000,52:172.20.0.7:4000"
-      TIMER: "1000"
+      TIMER: "1500"
     build:
       dockerfile: Dockerfile
       context: .
@@ -17,6 +17,10 @@ services:
     networks:
       default:
         ipv4_address: 172.20.0.5
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /Users/admin/adaptive/raft-kotlin/logs:/logs
+    working_dir: /usr/src/app
 
   node_two:
     image: kvex:latest
@@ -25,7 +29,7 @@ services:
       ID: "51"
       PORT: "4000"
       NODES: "50:172.20.0.5:4000,52:172.20.0.7:4000"
-      TIMER: "950"
+      TIMER: "1450"
     build:
       dockerfile: Dockerfile
       context: .
@@ -34,6 +38,10 @@ services:
     networks:
       default:
         ipv4_address: 172.20.0.6
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /Users/admin/adaptive/raft-kotlin/logs:/logs
+    working_dir: /usr/src/app
 
   node_three:
     image: kvex:latest
@@ -42,7 +50,7 @@ services:
       ID: "52"
       PORT: "4000"
       NODES: "50:172.20.0.5:4000,51:172.20.0.6:4000"
-      TIMER: "1050"
+      TIMER: "1550"
     build:
       dockerfile: Dockerfile
       context: .
@@ -51,6 +59,10 @@ services:
     networks:
       default:
         ipv4_address: 172.20.0.7
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /Users/admin/adaptive/raft-kotlin/logs:/logs
+    working_dir: /usr/src/app
 
 
 networks:

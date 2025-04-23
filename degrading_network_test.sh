@@ -3,7 +3,7 @@
 NETWORK="raft-kotlin_default"
 CYCLE_DURATION=120    # Total cycle duration (seconds)
 STEP_INTERVAL=10      # How often to change delay (seconds)
-MAX_EXTRA_DELAY=300   # Max degradation added (ms)
+MAX_EXTRA_DELAY=650   # Max degradation added (ms)
 
 # Base delays per node
 BASE_DELAYS=(20 30 40)  # node_one, node_two, node_three
@@ -20,7 +20,7 @@ function apply_netem() {
     local extra_delay=$1
     local total_delay=$((delay + extra_delay))
     log_time "🔧 Applying delay: ${total_delay}ms to ${NODES[$i]}"
-    docker exec ${NODES[$i]} sh -c "tc qdisc replace dev eth0 root netem delay ${total_delay}ms 20ms"
+    docker exec ${NODES[$i]} sh -c "tc qdisc replace dev eth0 root netem delay ${total_delay}ms 40ms"
 
     # ✅ Verify immediately after
     echo -n "🔍 Verifying: "

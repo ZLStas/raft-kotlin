@@ -6,7 +6,10 @@ KEY_PREFIX="perf-key"
 NUM_WRITES=200
 
 timestamp=$(date +"%Y%m%d_%H%M%S")
-OUT_FILE="raft_benchmark_${timestamp}.log"
+rm -f raft_benchmark_x.log
+rm -f network_log_*.log
+rm -f ./logs/node_*.log
+OUT_FILE="raft_benchmark_x.log"
 NETWORK_LOG="network_log_${timestamp}.log"
 
 function log_time() {
@@ -149,3 +152,10 @@ echo -e "\n===============================" | tee -a "$OUT_FILE"
 log_time "📶 Network Degradation Log" | tee -a "$OUT_FILE"
 echo "===============================" | tee -a "$OUT_FILE"
 cat "$NETWORK_LOG" | tee -a "$OUT_FILE"
+
+echo "📊 Running Python analysis..."
+# Activate virtual environment
+source /Users/admin/bh/statistics/venv/bin/activate
+
+# Run analysis
+python chart.py
