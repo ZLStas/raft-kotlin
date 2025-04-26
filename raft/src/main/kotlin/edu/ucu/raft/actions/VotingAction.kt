@@ -17,6 +17,7 @@ class VotingAction(val state: State, val cluster: List<ClusterNode>) {
     }
 
     suspend fun askVotes(): Boolean {
+        logger.info { "Asking for votes by ${state.id}" }
         if (cluster.isEmpty()) return false
         val majority = Math.floorDiv(cluster.size, 2)
         val request = VoteRequest.newBuilder().setTerm(state.term).setCandidateId(state.id)
@@ -30,7 +31,7 @@ class VotingAction(val state: State, val cluster: List<ClusterNode>) {
         responses.forEach { checkTerm(it) }
         val votes = responses.filter { it.voteGranted }.count()
 
+        logger.info { "Votes: $votes, majority: $majority,  votes >= majority: ${votes >= majority}" }
         return votes >= majority
-
     }
 }

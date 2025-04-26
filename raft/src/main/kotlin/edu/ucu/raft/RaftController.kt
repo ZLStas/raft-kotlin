@@ -103,11 +103,11 @@ class RaftController(val config: RaftConfiguration,
                 val result = voting.askVotes()
                 if (result) {
                     state.promoteToLeader()
+                    logger.info { "👑 Node ${state.id} won election for term $term" }
                 } else {
                     logger.info { "---> 🤬 Can't promote to leader <---" }
                 }
             }
-
         }
     }
 

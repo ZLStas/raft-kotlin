@@ -9,10 +9,10 @@ kyiv_tz = pytz.timezone("Europe/Kyiv")
 
 # Файли
 adaptive_log_path = "raft_benchmark_x.log"
-basic_log_path = "raft_benchmark_x.log"
+basic_log_path = "./results-2/palin_raft_benchmark_2.log"
 log_paths = {
     "node_one": "./logs/node_50.log",
-    "node_three": "./logs/node_52.log",
+    "node_three": "./logs/node_52.log"
 }
 JITTER_MS = 40
 
@@ -149,4 +149,6 @@ axs[2].legend()
 axs[2].grid(True)
 
 plt.tight_layout()
-plt.show()
+# Save the plot instead of showing it
+plt.savefig('raft_benchmark_results.png')
+print("Plot saved as 'raft_benchmark_results.png'")

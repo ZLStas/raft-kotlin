@@ -1,0 +1,18 @@
+[
+    {
+        "key": "cmd+r cmd+c",
+        "mac": "cmd+r cmd+c",
+        "win": "ctrl+r ctrl+c",
+        "linux": "ctrl+r ctrl+c",
+        "command": "workbench.action.tasks.runTask",
+        "args": "Start Raft Cluster"
+    },
+    {
+        "key": "cmd+r cmd+p",
+        "mac": "cmd+r cmd+p",
+        "win": "ctrl+r ctrl+p",
+        "linux": "ctrl+r ctrl+p",
+        "command": "workbench.action.tasks.runTask",
+        "args": "Run Performance Tests"
+    }
+] 

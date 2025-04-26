@@ -39,6 +39,26 @@ class State(val id: Int,
         logger.info { "🔴 State $current -> $next" }
         val prev = current
         current = next
+
+        // Clear leader-related delays when state changes as they're no longer valid
+        when (next) {
+            NodeState.FOLLOWER -> {
+                // Clear old leader delays when becoming follower
+                leaderToNodeDelays.clear()
+                logger.info { "📊 Cleared leader delays - new follower state" }
+            }
+            NodeState.CANDIDATE -> {
+                // Clear old leader delays when becoming candidate
+                leaderToNodeDelays.clear()
+                logger.info { "📊 Cleared leader delays - new candidate state" }
+            }
+            NodeState.LEADER -> {
+                // Clear and reinitialize leader delays when becoming leader
+                leaderToNodeDelays.clear()
+                logger.info { "📊 Cleared leader delays - new leader state" }
+            }
+        }
+        
         updates.send(prev to current)
     }
 

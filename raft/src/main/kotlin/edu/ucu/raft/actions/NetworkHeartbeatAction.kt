@@ -62,42 +62,58 @@ class NetworkHeartbeatAction(val state: State, val cluster: List<ClusterNode>, v
                 }
 
             logger.info { "!! State check -> current: ${state.current}, isLeader: ${state.current == NodeState.LEADER}" }
-            if (state.delays.size == cluster.size
-                && state.leaderToNodeDelays.size == cluster.size
-                && state.thetaM.size == cluster.size
+            logger.info { "Conditions check:" }
+            logger.info { "- delays size: ${state.delays.size} >= ${cluster.size} -> ${state.delays.size >= cluster.size}" }
+            logger.info { "- leaderToNodeDelays size: ${state.leaderToNodeDelays.size} >= ${cluster.size} -> ${state.leaderToNodeDelays.size >= cluster.size}" }
+            logger.info { "- thetaM size: ${state.thetaM.size} >= ${cluster.size} -> ${state.thetaM.size >= cluster.size}" }
+            logger.info { "All conditions met: ${state.delays.size >= cluster.size && state.leaderToNodeDelays.size >= cluster.size && state.thetaM.size >= cluster.size}" }
+            if (state.delays.size >= cluster.size
+                && state.leaderToNodeDelays.size >= cluster.size
+                && state.thetaM.size >= cluster.size
             ) {
                 val bestCandidateId = state.thetaM.minByOrNull { it.value ?: 0L }?.key
                 val T_bccc = state.delays[bestCandidateId] ?: 0L
-                val Tdlbc = state.leaderToNodeDelays[bestCandidateId]
+                val Tdlbc = state.leaderToNodeDelays[bestCandidateId] ?: 0L
                 val maxTheta_M = state.thetaM.values.filterNotNull().maxOrNull() ?: 0L
 
-                val a = 20L
-                val b = 40L
-                val T_max = 1700L
-                val delta_me = 0.45
-                val delta_c = 300
+                val a = 40L
+                val b = 80L
+                val T_max = 2500L
+                val delta_me = 0.35
+                val delta_c = 500
 
                 val avgDelay = state.maxLm ?: 0L
 
-                // Задаємо допустимий інтервал затримок, в якому очікується робота кластера
+                // Adjusted delay bounds to better handle network degradation
                 val minDelay = 20L
-                val maxDelay = 700L
+                val maxDelay = 2000L
 
                 val clamped = avgDelay.coerceIn(minDelay.toLong(), maxDelay).toDouble()
                 val delayFactor = (clamped - minDelay) / (maxDelay - minDelay)  // ∈ [0.0, 1.0]
 
-                val candidateScale = 1 + delta_me * delayFactor       // ∈ [1, 1.4]
-                val otherScale = 1 + (1-delta_me) * delayFactor           // ∈ [1, 1.6]
+                val candidateScale = 1 + delta_me * delayFactor       // ∈ [1, 1.35]
+                val otherScale = 1 + (1-delta_me) * delayFactor           // ∈ [1, 1.65]
 
-                val adaptiveBase = 700 + avgDelay.toDouble().coerceIn(minDelay.toDouble(), maxDelay.toDouble())
+                logger.info { "📊 Scale factors - otherScale: $otherScale, delayFactor: $delayFactor, candidateScale: $candidateScale" }
+                logger.info { "⏱️ Delays - avgDelay: $avgDelay, minDelay: $minDelay, maxDelay: $maxDelay" }
+
+                val adaptiveBase = 1000 + avgDelay.toDouble().coerceIn(minDelay.toDouble(), maxDelay.toDouble())
 
                 var newInterval = if (bestCandidateId == state.id.toString()) {
                     val base = adaptiveBase * candidateScale
-                    (base + (a..b).random()).toLong()
+                    logger.info { "Calculating interval for candidate node ${state.id}:" }
+                    logger.info { "- adaptiveBase: $adaptiveBase" }
+                    logger.info { "- candidateScale: $candidateScale" }
+                    logger.info { "- base (adaptiveBase * candidateScale): $base" }
+                    val randomExtra = (a..b).random()
+                    logger.info { "- random extra (${a}..${b}): $randomExtra" }
+                    val result = (base + randomExtra).toLong()
+                    logger.info { "Final interval: $result" }
+                    result
                 } else {
                     val base = adaptiveBase * otherScale
                     val minExtra = minOf(
-                        (Tdlbc!! + T_bccc - state.Tdlcc!!).toDouble(),
+                        (Tdlbc!! + T_bccc - (state.Tdlcc ?: 0L)).toDouble(),
                         delta_c.toDouble()
                     )
                     (base + (a..b).random() + minExtra).toLong()
