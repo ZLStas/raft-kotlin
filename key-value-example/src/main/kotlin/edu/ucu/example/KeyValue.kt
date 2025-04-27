@@ -15,6 +15,7 @@ import io.ktor.routing.routing
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import kotlinx.io.core.String
+import kotlinx.coroutines.withTimeoutOrNull
 
 object KeyValue {
 
@@ -40,14 +41,17 @@ object KeyValue {
                     val key = call.parameters["key"]!!
                     if (node.isLeader()) {
                         val data = call.receiveText()
-                        val result = node.applyCommand(Set(key, data.toByteArray()))
-                        call.respondText("Result: $result")
+                        val result = withTimeoutOrNull(5500) { node.applyCommand(Set(key, data.toByteArray())) }
+                        if (result == true) {
+                            call.respondText("Result: true")
+                        } else {
+                            call.respond(HttpStatusCode.GatewayTimeout, "Result: false")
+                        }
                     } else {
                         val leader = node.leaderNode()
                         call.response.header("Location", "http://${leader.host}:${leader.port + serverPortInc}/$key")
                         call.respond(HttpStatusCode.TemporaryRedirect, "redirected to master")
                     }
-
                 }
             }
         }.start(true)

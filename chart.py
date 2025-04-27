@@ -9,7 +9,7 @@ kyiv_tz = pytz.timezone("Europe/Kyiv")
 
 # Файли
 adaptive_log_path = "./results/raft_benchmark_x.log"
-basic_log_path = "raft_benchmark_basic.log"
+basic_log_path = "raft_benchmark_x.log"
 log_paths = {
     "node_one": "./results/node_50.log",
     "node_three": "./results/node_52.log",
