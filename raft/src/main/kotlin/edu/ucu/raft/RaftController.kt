@@ -152,7 +152,8 @@ class RaftController(val config: RaftConfiguration,
         actualizeTerm(request.term)
         val result = state.appendEntries(request)
 
-        if (result.success) {
+        // Reset election timer if the leader's term is at least as large as ours
+        if (request.term >= state.term) {
             clock.reset()
         }
 //        logger.info { "💎 Validated leader message. Result ${result.success}" }

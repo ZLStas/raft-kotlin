@@ -7,9 +7,11 @@ import edu.ucu.raft.state.State
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.async
 import kotlinx.coroutines.withTimeoutOrNull
+import mu.KotlinLogging
 
 class VotingAction(val state: State, val cluster: List<ClusterNode>) {
 
+private val logger = KotlinLogging.logger {}
     private fun checkTerm(response: VoteResponse) {
         if (response.term > this.state.term) {
 

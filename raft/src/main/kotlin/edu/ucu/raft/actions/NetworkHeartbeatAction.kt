@@ -86,7 +86,7 @@ class NetworkHeartbeatAction(val state: State, val cluster: List<ClusterNode>, v
 
                 // Adjusted delay bounds to better handle network degradation
                 val minDelay = 20L
-                val maxDelay = 2000L
+                val maxDelay = 800L
 
                 val clamped = avgDelay.coerceIn(minDelay.toLong(), maxDelay).toDouble()
                 val delayFactor = (clamped - minDelay) / (maxDelay - minDelay)  // ∈ [0.0, 1.0]
@@ -97,7 +97,7 @@ class NetworkHeartbeatAction(val state: State, val cluster: List<ClusterNode>, v
                 logger.info { "📊 Scale factors - otherScale: $otherScale, delayFactor: $delayFactor, candidateScale: $candidateScale" }
                 logger.info { "⏱️ Delays - avgDelay: $avgDelay, minDelay: $minDelay, maxDelay: $maxDelay" }
 
-                val adaptiveBase = 1000 + avgDelay.toDouble().coerceIn(minDelay.toDouble(), maxDelay.toDouble())
+                val adaptiveBase = 700 + avgDelay.toDouble().coerceIn(minDelay.toDouble(), maxDelay.toDouble())
 
                 var newInterval = if (bestCandidateId == state.id.toString()) {
                     val base = adaptiveBase * candidateScale

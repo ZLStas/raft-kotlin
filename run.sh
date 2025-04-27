@@ -6,7 +6,7 @@ echo "🛑 Shutting down existing cluster..."
 docker-compose down
 
 echo "🧹 Cleaning build and removing old JAR..."
-rm -f build/libs/*.jar
+rm -f ./key-value-example/build/libs/key-value-example-1.jar
 ./gradlew clean
 
 echo "🏗️ Building JAR..."
