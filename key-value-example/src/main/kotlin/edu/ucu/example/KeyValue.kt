@@ -52,7 +52,6 @@ object KeyValue {
                         call.response.header("Location", "http://${leader.host}:${leader.port + serverPortInc}/$key")
                         call.respond(HttpStatusCode.TemporaryRedirect, "redirected to master")
                     }
-
                 }
             }
         }.start(true)
