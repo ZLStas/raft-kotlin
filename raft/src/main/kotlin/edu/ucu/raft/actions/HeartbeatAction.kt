@@ -24,10 +24,10 @@ class HeartbeatAction(val state: State, val cluster: List<ClusterNode>) {
 
                 val entries = log.starting(prevIndex + 1)
                 val request = AppendRequest.newBuilder()
-                        .setTerm(state.term).setLeaderId(state.id).setLeaderCommit(state.log.commitIndex)
-                        .setPrevLogIndex(prevIndex).setPrevLogTerm(prevTerm)
-                        .addAllEntries(entries)
-                        .build()
+                    .setTerm(state.term).setLeaderId(state.id).setLeaderCommit(state.log.commitIndex)
+                    .setPrevLogIndex(prevIndex).setPrevLogTerm(prevTerm)
+                    .addAllEntries(entries)
+                    .build()
 
 
                 GlobalScope.async {
@@ -39,8 +39,12 @@ class HeartbeatAction(val state: State, val cluster: List<ClusterNode>) {
                     .forEach { (node, response) ->
                         when {
                             response.success -> {
-                                node.nextIndex = log.lastIndex() + 1
-                                node.matchIndex = node.nextIndex - 1
+                                    // The last entry sent in this AppendEntries was prevIndex + entries.size
+                                val prevIndex = node.nextIndex - 1
+                                val entriesSent = log.starting(prevIndex + 1)
+                                val lastReplicated = prevIndex + entriesSent.size
+                                node.matchIndex = lastReplicated
+                                node.nextIndex = lastReplicated + 1
                             }
                             !response.success -> {
                                 logger.info { "Heartbeat response: ${response.success}-${response.term}" }
