@@ -91,7 +91,7 @@ class NetworkHeartbeatAction(val state: State, val cluster: List<ClusterNode>, v
                 val clamped = avgDelay.coerceIn(minDelay.toLong(), maxDelay).toDouble()
                 val delayFactor = (clamped - minDelay) / (maxDelay - minDelay)  // ∈ [0.0, 1.0]
 
-                val candidateScale = 1 + delta_me * delayFactor       // ∈ [1, 1.35]
+                val candidateScale = 1 + 0.55 * delayFactor       // ∈ [1, 1.35]
                 val otherScale = 1 + (1-delta_me) * delayFactor           // ∈ [1, 1.65]
 
                 logger.info { "📊 Scale factors - otherScale: $otherScale, delayFactor: $delayFactor, candidateScale: $candidateScale" }
@@ -120,10 +120,11 @@ class NetworkHeartbeatAction(val state: State, val cluster: List<ClusterNode>, v
                 }
                 interval = newInterval
                 termClock.updateIntervalBasedOnDelays(newInterval)
+                
             }
+            logIntervalDataIntoFile(interval)
         }
-
-        logIntervalDataIntoFile(interval)
+        
     }
 
     private fun logIntervalDataIntoFile(newInterval: Long) {

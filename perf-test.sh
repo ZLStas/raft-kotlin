@@ -87,13 +87,34 @@ for i in $(seq 1 $NUM_WRITES); do
   value="value-${i}"
   req_time=$(date '+%Y-%m-%d %H:%M:%S.%3N')
   start_ms=$(gdate +%s%3N 2>/dev/null || date +%s%3N)
-  http_code=$(docker run --rm --net=$NETWORK curlimages/curl \
-    curl --max-time 5 -s -o /dev/null -w "%{http_code}" -X POST http://$TARGET_NODE:8000/$key -d "$value")
+
+  # Get both body and code, using a unique delimiter
+  response=$(docker run --rm --net=$NETWORK curlimages/curl \
+    curl --max-time 5 -s -L -w "\n---HTTP_CODE---%{http_code}" -X POST http://$TARGET_NODE:8000/$key -d "$value")
+
   end_ms=$(gdate +%s%3N 2>/dev/null || date +%s%3N)
   res_time=$(date '+%Y-%m-%d %H:%M:%S.%3N')
   duration=$((end_ms - start_ms))
 
-  if [ "$http_code" -eq 200 ] || [ "$http_code" -eq 307 ]; then
+  # Split response into body and code
+  http_code=$(echo "$response" | awk -F'---HTTP_CODE---' 'END{print $2}')
+  body=$(echo "$response" | awk -F'---HTTP_CODE---' 'BEGIN{ORS="";} {print $1}')
+
+  # Remove whitespace for matching
+  body_clean=$(echo "$body" | tr -d '\r\n')
+
+  # Debug output for first request
+  if [ "$i" -eq 1 ]; then
+    echo "RAW RESPONSE:"
+    echo "-----"
+    echo "$response"
+    echo "-----"
+    echo "BODY: '$body'"
+    echo "BODY_CLEAN: '$body_clean'"
+    echo "CODE: '$http_code'"
+  fi
+
+  if [ "$http_code" = "200" ] && [[ "$body_clean" == *"Result: true"* ]]; then
     success_count=$((success_count + 1))
     latencies+=($duration)
     total_time=$((total_time + duration))
@@ -101,7 +122,7 @@ for i in $(seq 1 $NUM_WRITES); do
     echo "$key | Req: $req_time | Res: $res_time | ${duration}ms | ✅" >> "$OUT_FILE"
   else
     fail_count=$((fail_count + 1))
-    echo "❌ $key | ${duration}ms | HTTP $http_code"
+    echo "❌ $key | ${duration}ms | HTTP $http_code | $body"
     echo "$key | Req: $req_time | Res: $res_time | ${duration}ms | ❌ ($http_code)" >> "$OUT_FILE"
   fi
 done
@@ -159,3 +180,26 @@ source /Users/admin/bh/statistics/venv/bin/activate
 
 # Run analysis
 python chart.py
+
+echo -e "\n===============================" | tee -a "$OUT_FILE"
+log_time "🔍 Verifying all keys..." | tee -a "$OUT_FILE"
+echo "===============================" | tee -a "$OUT_FILE"
+
+missing_count=0
+for i in $(seq 1 $NUM_WRITES); do
+  key="${KEY_PREFIX}-${i}"
+  expected="value-${i}"
+  # Try to read from the target node (or loop over all nodes if you want)
+  value=$(docker run --rm --net=$NETWORK curlimages/curl \
+    curl --max-time 5 -s -L http://$TARGET_NODE:8000/$key)
+  if [[ "$value" != "$expected" ]]; then
+    echo "❌ $key: expected '$expected', got '$value'" | tee -a "$OUT_FILE"
+    missing_count=$((missing_count + 1))
+  fi
+done
+
+if (( missing_count == 0 )); then
+  echo "✅ All $NUM_WRITES keys verified successfully!" | tee -a "$OUT_FILE"
+else
+  echo "❌ $missing_count keys missing or incorrect!" | tee -a "$OUT_FILE"
+fi

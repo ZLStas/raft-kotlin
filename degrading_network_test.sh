@@ -8,7 +8,7 @@ MAX_EXTRA_DELAY=650   # Max degradation added (ms)
 # Base delays per node
 BASE_DELAYS=(20 30 40)  # node_one, node_two, node_three
 
-NODES=(node_three)
+NODES=(node_one node_three)
 
 function log_time() {
   echo "🕒 $(date '+%Y-%m-%d %H:%M:%S') — $1"
@@ -22,9 +22,12 @@ function apply_netem() {
     log_time "🔧 Applying delay: ${total_delay}ms to ${NODES[$i]}"
     docker exec ${NODES[$i]} sh -c "tc qdisc replace dev eth0 root netem delay ${total_delay}ms 40ms"
 
-    # ✅ Verify immediately after
-    echo -n "🔍 Verifying: "
-    docker exec ${NODES[$i]} sh -c "tc qdisc show dev eth0" | tee -a "$NETWORK_LOG"
+    if [ $? -ne 0 ]; then
+      log_time "❌ Failed to apply delay to ${NODES[$i]} (container may not exist or is not running)"
+    else
+      log_time "✅ Successfully applied delay to ${NODES[$i]}"
+    fi
+
   done
 }
 

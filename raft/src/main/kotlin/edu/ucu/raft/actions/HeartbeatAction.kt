@@ -35,13 +35,17 @@ class HeartbeatAction(val state: State, val cluster: List<ClusterNode>) {
                     val response = it.appendEntries(request)
                     if (response == null) null else it to response
                 }
-            }.map { withTimeoutOrNull(200) { it.await() } }
+            }.map { withTimeoutOrNull(2500) { it.await() } }
                     .filterNotNull()
                     .forEach { (node, response) ->
                         when {
                             response.success -> {
-                                node.nextIndex = log.lastIndex() + 1
-                                node.matchIndex = node.nextIndex - 1
+                                    // The last entry sent in this AppendEntries was prevIndex + entries.size
+                                val prevIndex = node.nextIndex - 1
+                                val entriesSent = log.starting(prevIndex + 1)
+                                val lastReplicated = prevIndex + entriesSent.size
+                                node.matchIndex = lastReplicated
+                                node.nextIndex = lastReplicated + 1
                             }
                             !response.success -> {
                                 logger.info { "Heartbeat response: ${response.success}-${response.term}" }

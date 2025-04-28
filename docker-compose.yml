@@ -8,7 +8,7 @@ services:
       ID: "50"
       PORT: "4000"
       NODES: "51:172.20.0.6:4000,52:172.20.0.7:4000"
-      TIMER: "1500"
+      TIMER: "1050"
     build:
       dockerfile: Dockerfile
       context: .
@@ -29,7 +29,7 @@ services:
       ID: "51"
       PORT: "4000"
       NODES: "50:172.20.0.5:4000,52:172.20.0.7:4000"
-      TIMER: "1450"
+      TIMER: "1000"
     build:
       dockerfile: Dockerfile
       context: .
@@ -50,7 +50,7 @@ services:
       ID: "52"
       PORT: "4000"
       NODES: "50:172.20.0.5:4000,51:172.20.0.6:4000"
-      TIMER: "1550"
+      TIMER: "950"
     build:
       dockerfile: Dockerfile
       context: .

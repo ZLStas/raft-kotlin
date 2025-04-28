@@ -156,7 +156,7 @@ class RaftController(val config: RaftConfiguration,
         if (request.term >= state.term) {
             clock.reset()
         }
-//        logger.info { "💎 Validated leader message. Result ${result.success}" }
+        //        logger.info { "💎 Validated leader message. Result ${result.success}" }
         return result
     }
 
@@ -166,11 +166,25 @@ class RaftController(val config: RaftConfiguration,
 
     suspend fun applyCommand(command: Command): Boolean {
         val index = state.applyCommand(command)
+        val myTerm = state.term
+        var waited = 0
+        val maxWait = 5500 // 10 seconds, for example
 
-        while (index > state.log.commitIndex) {
+        while (true) {
+            if (index <= state.log.commitIndex) {
+                // Check that the entry at this index is ours (term matches)
+                val entry = state.log[index]
+                if (entry != null && entry.term == myTerm) {
+                    return true
+                } else {
+                    // Our entry was overwritten (e.g., lost due to leader change)
+                    return false
+                }
+            }
             delay(50)
+            waited += 50
+            if (waited > maxWait) return false // Timeout
         }
-        return true
     }
 
 
