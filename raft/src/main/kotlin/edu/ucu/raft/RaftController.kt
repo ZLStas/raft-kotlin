@@ -14,6 +14,7 @@ import edu.ucu.raft.actions.VotingAction
 import edu.ucu.raft.adapters.ClusterNode
 import edu.ucu.raft.adapters.RaftHandler
 import edu.ucu.raft.clock.TermClock
+import edu.ucu.raft.clock.HeartbeatClock
 import edu.ucu.raft.state.*
 import kotlinx.coroutines.*
 import mu.KotlinLogging
@@ -28,14 +29,20 @@ class RaftController(val config: RaftConfiguration,
 
     private val clock = TermClock(config.timerInterval)
     private val logger = KotlinLogging.logger {}
+    
+    // Create actions first
     private val heartbeat = HeartbeatAction(state, cluster)
-    private val networkHeartbeat = NetworkHeartbeatAction(state, cluster, clock)
-    private val voting = VotingAction(state, cluster)
     private val commit = CommitAction(state, cluster)
+    
+    // Pass actions to HeartbeatClock
+    private val heartbeatClock = HeartbeatClock(config.heartbeatInterval, heartbeat, commit)
+    
+    private val networkHeartbeat = NetworkHeartbeatAction(state, cluster, clock, heartbeatClock)
+    private val voting = VotingAction(state, cluster)
     private val clockSubscription = clock.channel.openSubscription()
     //    private val stateLock: Mutex = Mutex(false)
     private lateinit var termSubscriber: Job
-    private lateinit var heartbeatTimer: Timer
+    private lateinit var networkHeartbeatTimer: Timer
     private lateinit var stateSubscriber: Job
 
 
@@ -64,23 +71,8 @@ class RaftController(val config: RaftConfiguration,
         }
     }
 
-    private fun prepareHeartbeatTimer() {
-        heartbeatTimer = fixedRateTimer("heartbeat", initialDelay = config.heartbeatInterval, period = config.heartbeatInterval) {
-            runBlocking {
-                kotlin.runCatching {
-                    //                    stateLock.withLock {
-                    heartbeat.send()
-                    commit.perform()
-//                    }
-                }.onFailure {
-                    logger.error { "Failure: $it" }
-                }
-            }
-        }
-    }
-
     private fun prepareNetworkHeartbeatTimer() {
-        heartbeatTimer = fixedRateTimer(
+        networkHeartbeatTimer = fixedRateTimer(
             "heartbeatNetwork",
             initialDelay = config.networkHeartbeatInterval,
             period = config.networkHeartbeatInterval
@@ -121,7 +113,7 @@ class RaftController(val config: RaftConfiguration,
         runBlocking {
             clock.start()
             prepareTermIncrementSubscriber()
-            prepareHeartbeatTimer()
+            heartbeatClock.start()
             prepareNetworkHeartbeatTimer()
             prepareStateSubscriber()
         }
@@ -131,7 +123,8 @@ class RaftController(val config: RaftConfiguration,
         runBlocking {
             clock.freeze()
             termSubscriber.cancelAndJoin()
-            heartbeatTimer.cancel()
+            heartbeatClock.stop()
+            networkHeartbeatTimer.cancel()
             stateSubscriber.cancelAndJoin()
         }
     }
@@ -186,6 +179,5 @@ class RaftController(val config: RaftConfiguration,
             if (waited > maxWait) return false // Timeout
         }
     }
-
 
 }
